@@ -32,8 +32,9 @@ application {
 
 javafx {
     version = '17.0.12'
-    modules = [ 'javafx.controls', 'javafx.graphics', 'javafx.fxml' ]
+    modules = [ 'javafx.controls', 'javafx.graphics', 'javafx.fxml', 'javafx.swing' ]
 }
+
 
 dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.0'

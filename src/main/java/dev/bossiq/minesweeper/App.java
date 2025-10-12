@@ -2,7 +2,7 @@ package dev.bossiq.minesweeper;
 
 import dev.bossiq.minesweeper.ui.BoardView;
 import javafx.application.Application;
-import javafx.application.Platform;   // ← add this
+import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 

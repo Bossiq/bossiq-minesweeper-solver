@@ -6,17 +6,19 @@ import dev.bossiq.minesweeper.model.Coord;
 import dev.bossiq.minesweeper.model.GameStats;
 import dev.bossiq.minesweeper.solver.Solver;
 
-import javafx.application.Platform;
-import javafx.stage.Stage;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.SnapshotParameters;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.BorderPane;
@@ -28,6 +30,7 @@ import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 import javafx.util.Duration;
 
+import javax.imageio.ImageIO;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -47,14 +50,16 @@ public class BoardView extends BorderPane {
 
     private final Solver solver = new Solver();
 
+    // Controls
     private final ComboBox<String> difficulty = new ComboBox<>();
     private final TextField seedField = new TextField();
-    private final Button newGameBtn = new Button("New Game");
+    private final Button faceBtn = new Button("🙂");
     private final Button stepBtn = new Button("Step Solver (S)");
     private final Button autoBtn = new Button("Auto Solve (A)");
     private final Button clearBtn = new Button("Clear Flags (C)");
     private final Button saveBtn = new Button("Save");
     private final Button loadBtn = new Button("Load");
+    private final Button screenshotBtn = new Button("Screenshot (F8)");
     private final Label statusLabel = new Label();
     private final Label minesLeftLabel = new Label();
     private final Label flagsLabel = new Label();
@@ -72,6 +77,7 @@ public class BoardView extends BorderPane {
         grid.setAlignment(Pos.CENTER);
         setCenter(grid);
 
+        // Hotkeys
         setFocusTraversable(true);
         setOnKeyPressed(ev -> {
             if (ev.getCode() == KeyCode.R) startNewGame(currentDifficulty());
@@ -80,12 +86,14 @@ public class BoardView extends BorderPane {
             else if (ev.getCode() == KeyCode.C) clearFlags();
             else if (ev.getCode() == KeyCode.F5) saveGame();
             else if (ev.getCode() == KeyCode.F9) loadGame();
+            else if (ev.getCode() == KeyCode.F8) saveScreenshot();
         });
 
         startNewGame(Difficulty.BEGINNER);
         requestFocus();
     }
 
+    // ---- Difficulty presets ----
     private enum Difficulty { BEGINNER, INTERMEDIATE, EXPERT }
     private static class Preset { final int w,h,m; Preset(int w,int h,int m){this.w=w;this.h=h;this.m=m;} }
     private static final java.util.Map<Difficulty, Preset> PRESETS = java.util.Map.of(
@@ -105,16 +113,22 @@ public class BoardView extends BorderPane {
         seedField.setPromptText("seed (optional)");
         seedField.setPrefWidth(120);
 
+        faceBtn.setFont(Font.font(18));
+        faceBtn.setOnAction(e -> startNewGame(currentDifficulty()));
+
         difficulty.setOnAction(e -> startNewGame(currentDifficulty()));
-        newGameBtn.setOnAction(e -> startNewGame(currentDifficulty()));
         stepBtn.setOnAction(e -> stepSolver());
         autoBtn.setOnAction(e -> autoSolve());
         clearBtn.setOnAction(e -> clearFlags());
         saveBtn.setOnAction(e -> saveGame());
         loadBtn.setOnAction(e -> loadGame());
+        screenshotBtn.setOnAction(e -> saveScreenshot());
 
-        HBox left = new HBox(8, new Label("Difficulty:"), difficulty, new Label("Seed:"), seedField,
-                newGameBtn, stepBtn, autoBtn, clearBtn, saveBtn, loadBtn);
+        HBox left = new HBox(8,
+                new Label("Difficulty:"), difficulty,
+                new Label("Seed:"), seedField,
+                faceBtn, stepBtn, autoBtn, clearBtn, saveBtn, loadBtn, screenshotBtn
+        );
         left.setAlignment(Pos.CENTER_LEFT);
 
         HBox stats = new HBox(16, statusLabel, minesLeftLabel, flagsLabel, movesLabel, timeLabel);
@@ -153,11 +167,12 @@ public class BoardView extends BorderPane {
         }
         buildGrid(p.w, p.h);
         refreshAll();
-        statusLabel.setText("🙂 New game — LMB reveal, RMB flag. Shortcuts: R/S/A/C, F5=Save, F9=Load");
+        updateFace();
+        statusLabel.setText("🙂 LMB reveal, RMB flag, dbl-click/Middle to chord. Shortcuts: R/S/A/C, F5=Save, F9=Load, F8=Screenshot");
         updateStats();
-        sizeWindowToFit();
         startTimer(true);
         requestFocus();
+        sizeWindowToFit();
     }
 
     private void buildGrid(int w, int h) {
@@ -177,18 +192,44 @@ public class BoardView extends BorderPane {
             final int fx = x, fy = y;
             btn.setOnMouseClicked(ev -> {
                 if (board.isGameOver()) return;
+
+                if (ev.getButton() == MouseButton.MIDDLE || (ev.getButton() == MouseButton.PRIMARY && ev.getClickCount() == 2)) {
+                    Board.RevealResult r = board.chord(fx, fy);
+                    if (r.hitMine) {
+                        refreshAll();
+                        statusLabel.setText("💥 Boom! (R/🙂 to restart)");
+                        startTimer(false);
+                        updateFace();
+                    } else {
+                        for (Coord c : r.revealed) refreshTile(c.x(), c.y());
+                        if (board.isWon()) {
+                            statusLabel.setText("🏆 You win! (🙂 to play again)");
+                            startTimer(false); refreshAll();
+                        } else {
+                            statusLabel.setText(r.revealed.isEmpty() ? "🤔 No chord" : "🙂");
+                        }
+                        updateFace();
+                    }
+                    updateStats();
+                    return;
+                }
+
                 if (ev.getButton() == MouseButton.PRIMARY) {
                     Board.RevealResult r = board.reveal(fx, fy);
                     if (r.hitMine) {
                         refreshAll();
-                        statusLabel.setText("💥 Boom! (R to restart)");
+                        statusLabel.setText("💥 Boom! (R/🙂 to restart)");
                         startTimer(false);
+                        updateFace();
                     } else {
                         for (Coord c : r.revealed) refreshTile(c.x(), c.y());
                         if (board.isWon()) {
-                            statusLabel.setText("🏆 You win! (R to play again)");
+                            statusLabel.setText("🏆 You win! (🙂 to play again)");
                             startTimer(false); refreshAll();
-                        } else statusLabel.setText("🙂");
+                        } else {
+                            statusLabel.setText("🙂");
+                        }
+                        updateFace();
                     }
                     updateStats();
                 } else if (ev.getButton() == MouseButton.SECONDARY) {
@@ -201,7 +242,6 @@ public class BoardView extends BorderPane {
             tiles[y][x] = btn; grid.add(btn, x, y);
         }
         sizeWindowToFit();
-
     }
 
     private void refreshAll() {
@@ -265,6 +305,14 @@ public class BoardView extends BorderPane {
         timer.playFromStart();
     }
 
+    private void updateFace() {
+        if (!board.isGameOver()) {
+            faceBtn.setText("🙂");
+        } else {
+            faceBtn.setText(board.isWon() ? "😎" : "💥");
+        }
+    }
+
     private void stepSolver() {
         if (board.isGameOver()) return;
         int actions = solver.step(board);
@@ -272,6 +320,7 @@ public class BoardView extends BorderPane {
         else statusLabel.setText("🧠 Solver made " + actions + " action(s).");
         refreshAll(); updateStats();
         if (board.isGameOver()) startTimer(false);
+        updateFace();
         requestFocus();
     }
 
@@ -283,6 +332,7 @@ public class BoardView extends BorderPane {
         else statusLabel.setText("🧠 Solver made " + actions + " action(s). Done.");
         refreshAll(); updateStats();
         if (board.isGameOver()) startTimer(false);
+        updateFace();
         requestFocus();
     }
 
@@ -317,6 +367,7 @@ public class BoardView extends BorderPane {
             this.board = Board.load(in);
             buildGrid(board.getWidth(), board.getHeight());
             refreshAll(); updateStats();
+            updateFace();
             statusLabel.setText("📂 Loaded " + f.getName());
             startTimer(!board.isGameOver());
         } catch (IOException ex) {
@@ -325,15 +376,31 @@ public class BoardView extends BorderPane {
         requestFocus();
     }
 
+    private void saveScreenshot() {
+        try {
+            WritableImage image = grid.snapshot(new SnapshotParameters(), null);
+
+            FileChooser fc = new FileChooser();
+            fc.setTitle("Save Screenshot");
+            fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG Image (*.png)", "*.png"));
+            fc.setInitialFileName("minesweeper.png");
+            File f = fc.showSaveDialog(getScene().getWindow());
+            if (f == null) return;
+
+            ImageIO.write(SwingFXUtils.fromFXImage(image, null), "png", f);
+            statusLabel.setText("📸 Saved screenshot: " + f.getName());
+        } catch (IOException ex) {
+            statusLabel.setText("❌ Screenshot failed: " + ex.getMessage());
+        }
+        requestFocus();
+    }
+    
     private void sizeWindowToFit() {
-        // Run later to ensure Scene/Stage are attached and layout is computed
         Platform.runLater(() -> {
             if (getScene() == null || getScene().getWindow() == null) return;
             applyCss();
             layout();
-            // Ask the Stage to resize to the preferred size of the Scene's root
             getScene().getWindow().sizeToScene();
         });
     }
-
 }

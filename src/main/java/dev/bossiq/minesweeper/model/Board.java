@@ -136,6 +136,61 @@ public final class Board {
         return new RevealResult(false, changed);
     }
 
+    public RevealResult chord(int x, int y) {
+        boundsCheck(x, y);
+        if (gameOver) return new RevealResult(false, java.util.List.of());
+
+        Cell center = grid[y][x];
+        if (!center.isRevealed() || center.isMine()) return new RevealResult(false, java.util.List.of());
+
+        int number = center.getAdjacentMines();
+        if (number == 0) return new RevealResult(false, java.util.List.of());
+
+        java.util.List<Coord> neigh = neighbors(x, y);
+        int flagged = 0;
+        java.util.List<Coord> candidates = new java.util.ArrayList<>();
+        for (Coord c : neigh) {
+            Cell nc = grid[c.y()][c.x()];
+            if (nc.isFlagged()) flagged++;
+            else if (!nc.isRevealed()) candidates.add(c);
+        }
+        if (flagged != number || candidates.isEmpty()) {
+            return new RevealResult(false, java.util.List.of());
+        }
+
+        moves++;
+        ensureStarted();
+
+        java.util.List<Coord> changed = new java.util.ArrayList<>();
+        for (Coord c : candidates) {
+            Cell nc = grid[c.y()][c.x()];
+            if (nc.isFlagged() || nc.isRevealed()) continue;
+            if (nc.isMine()) {
+                nc.reveal();
+                gameOver = true; won = false; endNanos = System.nanoTime();
+                revealAllMines();
+                changed.add(c);
+                return new RevealResult(true, changed);
+            } else {
+                floodReveal(c.x(), c.y(), changed);
+            }
+        }
+        checkWin();
+        return new RevealResult(false, changed);
+    }
+
+    private java.util.List<Coord> neighbors(int x, int y) {
+        java.util.List<Coord> res = new java.util.ArrayList<>(8);
+        for (int dy = -1; dy <= 1; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                if (dx == 0 && dy == 0) continue;
+                int nx = x + dx, ny = y + dy;
+                if (inBounds(nx, ny)) res.add(new Coord(nx, ny));
+            }
+        }
+        return res;
+    }
+
     public boolean toggleFlag(int x, int y) {
         boundsCheck(x, y);
         if (gameOver) return false;

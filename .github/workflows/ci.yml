@@ -4,7 +4,6 @@ on:
   push:
   pull_request:
 
-# Don't cancel the whole matrix if one OS fails
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
