@@ -29,7 +29,6 @@ public final class Board {
 
     private final Random rng;
 
-
     public Board(int width, int height, int mineCount) {
         this(width, height, mineCount, new Random());
     }
@@ -48,7 +47,6 @@ public final class Board {
         computeAdjacencyCounts();
     }
 
-
     public int getWidth() { return width; }
     public int getHeight() { return height; }
     public int getMineCount() { return mineCount; }
@@ -61,7 +59,6 @@ public final class Board {
         boundsCheck(x, y);
         return grid[y][x];
     }
-
 
     private static void validateSizes(int width, int height, int mineCount) {
         if (width <= 0 || height <= 0) throw new IllegalArgumentException("width/height must be > 0");
@@ -103,14 +100,13 @@ public final class Board {
         }
     }
 
-
     public RevealResult reveal(int x, int y) {
         boundsCheck(x, y);
         if (gameOver) return new RevealResult(false, Collections.emptyList());
 
         Cell cell = grid[y][x];
         if (cell.isRevealed() || cell.isFlagged()) {
-            return new RevealResult(false, Collections.emptyList());
+            return new RevealResult(false, Collections.emptyList()); // no-op
         }
 
         moves++;
@@ -137,7 +133,7 @@ public final class Board {
         if (gameOver) return false;
 
         Cell c = grid[y][x];
-        if (c.isRevealed()) return c.isFlagged();
+        if (c.isRevealed()) return c.isFlagged(); // no change
 
         moves++;
         ensureStarted();
@@ -149,14 +145,13 @@ public final class Board {
         return c.isFlagged();
     }
 
-
     private void floodReveal(int sx, int sy, List<Coord> changed) {
         Deque<Coord> dq = new ArrayDeque<>();
         dq.add(new Coord(sx, sy));
 
         while (!dq.isEmpty()) {
             Coord cur = dq.removeFirst();
-            Cell cell = grid[cur.y][cur.x];
+            Cell cell = grid[cur.y()][cur.x()];
 
             if (cell.isRevealed() || cell.isFlagged()) continue;
             cell.reveal();
@@ -168,13 +163,13 @@ public final class Board {
                 for (int dy = -1; dy <= 1; dy++) {
                     for (int dx = -1; dx <= 1; dx++) {
                         if (dx == 0 && dy == 0) continue;
-                        int nx = cur.x + dx, ny = cur.y + dy;
+                        int nx = cur.x() + dx, ny = cur.y() + dy;
                         if (inBounds(nx, ny)) {
                             Cell n = grid[ny][nx];
                             if (!n.isRevealed() && !n.isFlagged() && !n.isMine()) {
                                 dq.addLast(new Coord(nx, ny));
                             } else if (!n.isMine() && n.isHidden() && n.getAdjacentMines() > 0) {
-
+                                // leaf number next to a zero: reveal it too
                                 n.reveal();
                                 changed.add(new Coord(nx, ny));
                                 revealedSafeCells++;
@@ -216,7 +211,6 @@ public final class Board {
         if (!inBounds(x, y)) throw new IndexOutOfBoundsException("Out of bounds: " + x + "," + y);
     }
 
-
     public GameStats snapshotStats() {
         long end = (endNanos == 0L ? System.nanoTime() : endNanos);
         double seconds = (startNanos == 0L) ? 0.0 : (end - startNanos) / 1_000_000_000.0;
@@ -231,4 +225,3 @@ public final class Board {
         );
     }
 }
-
