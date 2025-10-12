@@ -1,0 +1,24 @@
+plugins {
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.0.13'
+}
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+application {
+    mainClass = 'dev.bossiq.minesweeper.App'
+}
+
+javafx {
+    // LTS line works well on Win11 + JDK17
+    version = '21'
+    modules = [ 'javafx.controls' ]
+}
