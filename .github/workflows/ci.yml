@@ -4,49 +4,63 @@ on:
   push:
   pull_request:
 
+# Don't cancel the whole matrix if one OS fails
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   test:
+    name: Test on ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+
+    env:
+      GRADLE_OPTS: -Dfile.encoding=UTF-8
+
     steps:
       - uses: actions/checkout@v4
 
+      - name: Ensure gradlew is executable (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: chmod +x ./gradlew
+
       - name: Set up JDK 17
-        # Temurin includes jpackage; we only need it on Windows in the packaging job below.
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
           cache: gradle
 
-      - name: Run tests (Gradle Wrapper)
-        # On Windows the default shell is PowerShell, so use the .bat wrapper.
+      - name: Gradle version
         run: |
-          if ($env:RUNNER_OS -eq 'Windows') { ./gradlew.bat clean test --no-daemon } else { ./gradlew clean test --no-daemon }
+          if [ "${{ runner.os }}" = "Windows" ]; then ./gradlew.bat -v; else ./gradlew -v; fi
+        shell: bash
+
+      - name: Run tests
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then ./gradlew.bat clean test --no-daemon --stacktrace; else ./gradlew clean test --no-daemon --stacktrace; fi
+        shell: bash
 
   package-image:
-    # Build a portable runtime image via jlink on Windows and upload it as an artifact
+    name: Build portable image (Windows)
     runs-on: windows-latest
     needs: test
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
           cache: gradle
-
       - name: Build jlink image
-        run: ./gradlew.bat jlink --no-daemon
-
+        run: ./gradlew.bat jlink --no-daemon --stacktrace
       - name: Archive portable image
-        run: |
-          Compress-Archive -Path build\image\* -DestinationPath minesweeper-image.zip
-
+        run: Compress-Archive -Path build\image\* -DestinationPath minesweeper-image.zip
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
