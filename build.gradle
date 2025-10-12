@@ -7,6 +7,16 @@ plugins {
 group = 'dev.bossiq'
 version = '1.0.0'
 
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+tasks.withType(Javadoc).configureEach {
+    options.encoding = 'UTF-8'
+}
+tasks.withType(ProcessResources).configureEach {
+    filteringCharset = 'UTF-8'
+}
+
 repositories {
     mavenCentral()
 }
