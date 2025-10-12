@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        # Temurin includes jpackage; we only need it on Windows in the packaging job below.
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Run tests (Gradle Wrapper)
+        # On Windows the default shell is PowerShell, so use the .bat wrapper.
+        run: |
+          if ($env:RUNNER_OS -eq 'Windows') { ./gradlew.bat clean test --no-daemon } else { ./gradlew clean test --no-daemon }
+
+  package-image:
+    # Build a portable runtime image via jlink on Windows and upload it as an artifact
+    runs-on: windows-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Build jlink image
+        run: ./gradlew.bat jlink --no-daemon
+
+      - name: Archive portable image
+        run: |
+          Compress-Archive -Path build\image\* -DestinationPath minesweeper-image.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: minesweeper-image
+          path: minesweeper-image.zip
