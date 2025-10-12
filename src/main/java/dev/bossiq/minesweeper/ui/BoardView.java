@@ -394,7 +394,7 @@ public class BoardView extends BorderPane {
         }
         requestFocus();
     }
-    
+
     private void sizeWindowToFit() {
         Platform.runLater(() -> {
             if (getScene() == null || getScene().getWindow() == null) return;

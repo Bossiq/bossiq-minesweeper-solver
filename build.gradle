@@ -59,3 +59,9 @@ jlink {
         // winConsole = false
     }
 }
+
+tasks.withType(Javadoc).configureEach {
+    options.encoding = 'UTF-8'
+    // Hide “missing javadoc” noise (keep this if you prefer a clean build)
+    options.addBooleanOption('Xdoclint:none', true)
+}
