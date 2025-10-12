@@ -1,6 +1,7 @@
 package dev.bossiq.minesweeper.ui;
 
 import dev.bossiq.minesweeper.model.*;
+import dev.bossiq.minesweeper.solver.Solver;
 
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
@@ -10,6 +11,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.*;
 import javafx.scene.text.Font;
@@ -23,10 +25,14 @@ public class BoardView extends BorderPane {
     private GridPane grid = new GridPane();
     private Button[][] tiles;
 
+    private final Solver solver = new Solver();
+
     private final ComboBox<String> difficulty = new ComboBox<>();
     private final Button newGameBtn = new Button("New Game");
+    private final Button stepBtn = new Button("Step Solver (S)");
+    private final Button autoBtn = new Button("Auto Solve (A)");
     private final Label statusLabel = new Label();
-    private final Label minesLabel = new Label();
+    private final Label minesLeftLabel = new Label();
     private final Label flagsLabel = new Label();
     private final Label movesLabel = new Label();
     private final Label timeLabel = new Label();
@@ -42,7 +48,19 @@ public class BoardView extends BorderPane {
         grid.setAlignment(Pos.CENTER);
         setCenter(grid);
 
-        startNewGame(Difficulty.BEGINNER); // default
+        setFocusTraversable(true);
+        setOnKeyPressed(ev -> {
+            if (ev.getCode() == KeyCode.R) {
+                startNewGame(currentDifficulty());
+            } else if (ev.getCode() == KeyCode.S) {
+                stepSolver();
+            } else if (ev.getCode() == KeyCode.A) {
+                autoSolve();
+            }
+        });
+
+        startNewGame(Difficulty.BEGINNER);
+        requestFocus();
     }
 
     private enum Difficulty { BEGINNER, INTERMEDIATE, EXPERT }
@@ -62,11 +80,13 @@ public class BoardView extends BorderPane {
         difficulty.getSelectionModel().select(0);
         difficulty.setOnAction(e -> startNewGame(currentDifficulty()));
         newGameBtn.setOnAction(e -> startNewGame(currentDifficulty()));
+        stepBtn.setOnAction(e -> stepSolver());
+        autoBtn.setOnAction(e -> autoSolve());
 
-        HBox left = new HBox(8, new Label("Difficulty:"), difficulty, newGameBtn);
+        HBox left = new HBox(8, new Label("Difficulty:"), difficulty, newGameBtn, stepBtn, autoBtn);
         left.setAlignment(Pos.CENTER_LEFT);
 
-        HBox stats = new HBox(16, statusLabel, minesLabel, flagsLabel, movesLabel, timeLabel);
+        HBox stats = new HBox(16, statusLabel, minesLeftLabel, flagsLabel, movesLabel, timeLabel);
         stats.setAlignment(Pos.CENTER_RIGHT);
 
         Region spacer = new Region();
@@ -92,9 +112,10 @@ public class BoardView extends BorderPane {
         board = new Board(p.w, p.h, p.m);
         buildGrid(p.w, p.h);
         refreshAll();
-        statusLabel.setText("🙂 New game");
+        statusLabel.setText("🙂 New game — left click: reveal, right click: flag. Shortcuts: R/S/A");
         updateStats();
         startTimer(true);
+        requestFocus();
     }
 
     private void buildGrid(int w, int h) {
@@ -120,12 +141,12 @@ public class BoardView extends BorderPane {
                         Board.RevealResult r = board.reveal(fx, fy);
                         if (r.hitMine) {
                             refreshAll();
-                            statusLabel.setText("💥 Boom! You hit a mine.");
+                            statusLabel.setText("💥 Boom! You hit a mine. (R to restart)");
                             startTimer(false);
                         } else {
                             for (Coord c : r.revealed) refreshTile(c.x(), c.y());
                             if (board.isWon()) {
-                                statusLabel.setText("🏆 You win!");
+                                statusLabel.setText("🏆 You win! (R to play again)");
                                 startTimer(false);
                                 refreshAll();
                             } else {
@@ -177,7 +198,7 @@ public class BoardView extends BorderPane {
                     style += " -fx-background-color: #fafafa;";
                 }
             }
-        } else { // hidden
+        } else {
             text = cell.isFlagged() ? "🚩" : "";
             style += " -fx-background-color: #e0e0e0;";
         }
@@ -202,7 +223,7 @@ public class BoardView extends BorderPane {
 
     private void updateStats() {
         GameStats s = board.snapshotStats();
-        minesLabel.setText("Mines: " + s.mines());
+        minesLeftLabel.setText("Mines left: " + board.getMinesRemaining());
         flagsLabel.setText("Flags: " + s.flagsUsed());
         movesLabel.setText("Moves: " + s.moves());
         timeLabel.setText("Time: " + String.format("%.0f s", s.elapsedSeconds()));
@@ -216,5 +237,35 @@ public class BoardView extends BorderPane {
         ));
         timer.setCycleCount(Animation.INDEFINITE);
         timer.playFromStart();
+    }
+
+    private void stepSolver() {
+        if (board.isGameOver()) return;
+        int actions = solver.step(board);
+        if (actions == 0) {
+            statusLabel.setText("🤔 Solver stuck—need a guess or more info.");
+        } else {
+            statusLabel.setText("🧠 Solver made " + actions + " action(s).");
+        }
+        refreshAll();
+        updateStats();
+        if (board.isGameOver()) startTimer(false);
+        requestFocus();
+    }
+
+    private void autoSolve() {
+        if (board.isGameOver()) return;
+        int actions = solver.autoSolve(board);
+        if (board.isWon()) {
+            statusLabel.setText("🏆 Solver cleared the board!");
+        } else if (actions == 0) {
+            statusLabel.setText("🤔 Solver stuck—no deterministic moves.");
+        } else {
+            statusLabel.setText("🧠 Solver made " + actions + " action(s). Done.");
+        }
+        refreshAll();
+        updateStats();
+        if (board.isGameOver()) startTimer(false);
+        requestFocus();
     }
 }

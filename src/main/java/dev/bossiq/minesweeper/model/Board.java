@@ -19,6 +19,7 @@ public final class Board {
     private final int mineCount;
     private final Cell[][] grid;
 
+
     private boolean gameOver = false;
     private boolean won = false;
     private int revealedSafeCells = 0;
@@ -29,22 +30,39 @@ public final class Board {
 
     private final Random rng;
 
+
+    private final boolean firstClickSafe;
+    private boolean minesPlaced;
+
+
     public Board(int width, int height, int mineCount) {
-        this(width, height, mineCount, new Random());
+        this(width, height, mineCount, new Random(), true);
     }
 
     public Board(int width, int height, int mineCount, Random rng) {
+        this(width, height, mineCount, rng, true);
+    }
+
+    public Board(int width, int height, int mineCount, Random rng, boolean firstClickSafe) {
         validateSizes(width, height, mineCount);
         this.width = width;
         this.height = height;
         this.mineCount = mineCount;
         this.rng = Objects.requireNonNull(rng, "rng");
+        this.firstClickSafe = firstClickSafe;
+
         this.grid = new Cell[height][width];
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) grid[y][x] = new Cell();
         }
-        placeMines();
-        computeAdjacencyCounts();
+
+        if (!firstClickSafe) {
+            placeMines(Collections.emptySet());
+            computeAdjacencyCounts();
+            minesPlaced = true;
+        } else {
+            minesPlaced = false;
+        }
     }
 
     public int getWidth() { return width; }
@@ -54,6 +72,7 @@ public final class Board {
     public boolean isWon() { return won; }
     public int getMoves() { return moves; }
     public int getFlagsUsed() { return flagsUsed; }
+    public int getMinesRemaining() { return mineCount - flagsUsed; }
 
     public Cell getCell(int x, int y) {
         boundsCheck(x, y);
@@ -66,12 +85,16 @@ public final class Board {
         if (mineCount <= 0 || mineCount >= cells) throw new IllegalArgumentException("mineCount must be between 1 and cells-1");
     }
 
-    private void placeMines() {
+    private void placeMines(Set<Integer> excludeIndices) {
         int cells = width * height;
         List<Integer> indices = new ArrayList<>(cells);
-        for (int i = 0; i < cells; i++) indices.add(i);
+        for (int i = 0; i < cells; i++) {
+            if (!excludeIndices.contains(i)) indices.add(i);
+        }
+        if (indices.size() < mineCount) {
+            throw new IllegalStateException("Not enough cells to place mines after exclusions");
+        }
         Collections.shuffle(indices, rng);
-
         for (int i = 0; i < mineCount; i++) {
             int idx = indices.get(i);
             int x = idx % width;
@@ -100,20 +123,31 @@ public final class Board {
         }
     }
 
+    private void ensureMinesPlacedExcluding(int sx, int sy) {
+        if (minesPlaced) return;
+        int safeIdx = sy * width + sx;
+        placeMines(Collections.singleton(safeIdx));
+        computeAdjacencyCounts();
+        minesPlaced = true;
+    }
+
     public RevealResult reveal(int x, int y) {
         boundsCheck(x, y);
         if (gameOver) return new RevealResult(false, Collections.emptyList());
 
+        if (!minesPlaced && firstClickSafe) {
+            ensureMinesPlacedExcluding(x, y);
+        }
+
         Cell cell = grid[y][x];
         if (cell.isRevealed() || cell.isFlagged()) {
-            return new RevealResult(false, Collections.emptyList()); // no-op
+            return new RevealResult(false, Collections.emptyList());
         }
 
         moves++;
         ensureStarted();
 
         if (cell.isMine()) {
-
             cell.reveal();
             gameOver = true;
             won = false;
@@ -133,7 +167,7 @@ public final class Board {
         if (gameOver) return false;
 
         Cell c = grid[y][x];
-        if (c.isRevealed()) return c.isFlagged(); // no change
+        if (c.isRevealed()) return c.isFlagged();
 
         moves++;
         ensureStarted();
@@ -169,7 +203,6 @@ public final class Board {
                             if (!n.isRevealed() && !n.isFlagged() && !n.isMine()) {
                                 dq.addLast(new Coord(nx, ny));
                             } else if (!n.isMine() && n.isHidden() && n.getAdjacentMines() > 0) {
-                                // leaf number next to a zero: reveal it too
                                 n.reveal();
                                 changed.add(new Coord(nx, ny));
                                 revealedSafeCells++;
@@ -204,7 +237,6 @@ public final class Board {
     private void ensureStarted() {
         if (startNanos == 0L) startNanos = System.nanoTime();
     }
-
 
     private boolean inBounds(int x, int y) { return x >= 0 && y >= 0 && x < width && y < height; }
     private void boundsCheck(int x, int y) {

@@ -10,9 +10,10 @@ public class App extends Application {
     public void start(Stage stage) {
         BoardView root = new BoardView();
         Scene scene = new Scene(root);
-        stage.setTitle("Minesweeper + Solver (Unfinished))");
+        stage.setTitle("Minesweeper + Solver");
         stage.setScene(scene);
         stage.show();
+        root.requestFocus();
     }
 
     public static void main(String[] args) {
