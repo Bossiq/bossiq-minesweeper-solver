@@ -6,6 +6,8 @@ import dev.bossiq.minesweeper.model.Coord;
 import dev.bossiq.minesweeper.model.GameStats;
 import dev.bossiq.minesweeper.solver.Solver;
 
+import javafx.application.Platform;
+import javafx.stage.Stage;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -153,6 +155,7 @@ public class BoardView extends BorderPane {
         refreshAll();
         statusLabel.setText("🙂 New game — LMB reveal, RMB flag. Shortcuts: R/S/A/C, F5=Save, F9=Load");
         updateStats();
+        sizeWindowToFit();
         startTimer(true);
         requestFocus();
     }
@@ -197,6 +200,8 @@ public class BoardView extends BorderPane {
 
             tiles[y][x] = btn; grid.add(btn, x, y);
         }
+        sizeWindowToFit();
+
     }
 
     private void refreshAll() {
@@ -319,4 +324,16 @@ public class BoardView extends BorderPane {
         }
         requestFocus();
     }
+
+    private void sizeWindowToFit() {
+        // Run later to ensure Scene/Stage are attached and layout is computed
+        Platform.runLater(() -> {
+            if (getScene() == null || getScene().getWindow() == null) return;
+            applyCss();
+            layout();
+            // Ask the Stage to resize to the preferred size of the Scene's root
+            getScene().getWindow().sizeToScene();
+        });
+    }
+
 }

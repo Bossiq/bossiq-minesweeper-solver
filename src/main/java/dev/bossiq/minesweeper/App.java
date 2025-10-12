@@ -2,6 +2,7 @@ package dev.bossiq.minesweeper;
 
 import dev.bossiq.minesweeper.ui.BoardView;
 import javafx.application.Application;
+import javafx.application.Platform;   // ← add this
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
@@ -13,7 +14,8 @@ public class App extends Application {
         stage.setTitle("Minesweeper + Solver");
         stage.setScene(scene);
         stage.show();
-        root.requestFocus();
+
+        Platform.runLater(stage::sizeToScene);
     }
 
     public static void main(String[] args) {
