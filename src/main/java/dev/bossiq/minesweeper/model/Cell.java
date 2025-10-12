@@ -34,5 +34,10 @@ public final class Cell {
         if (state == CellState.REVEALED) return;
         state = (state == CellState.FLAGGED) ? CellState.HIDDEN : CellState.FLAGGED;
     }
+
+    void forceSetState(CellState s) {
+        this.state = s;
+    }
+
 }
 
