@@ -1,6 +1,9 @@
 package dev.bossiq.minesweeper.ui;
 
-import dev.bossiq.minesweeper.model.*;
+import dev.bossiq.minesweeper.model.Board;
+import dev.bossiq.minesweeper.model.Cell;
+import dev.bossiq.minesweeper.model.Coord;
+import dev.bossiq.minesweeper.model.GameStats;
 import dev.bossiq.minesweeper.solver.Solver;
 
 import javafx.animation.Animation;
@@ -11,11 +14,26 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
-import javafx.scene.layout.*;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.text.Font;
+import javafx.stage.FileChooser;
 import javafx.util.Duration;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 public class BoardView extends BorderPane {
 
@@ -28,10 +46,13 @@ public class BoardView extends BorderPane {
     private final Solver solver = new Solver();
 
     private final ComboBox<String> difficulty = new ComboBox<>();
+    private final TextField seedField = new TextField();
     private final Button newGameBtn = new Button("New Game");
     private final Button stepBtn = new Button("Step Solver (S)");
     private final Button autoBtn = new Button("Auto Solve (A)");
     private final Button clearBtn = new Button("Clear Flags (C)");
+    private final Button saveBtn = new Button("Save");
+    private final Button loadBtn = new Button("Load");
     private final Label statusLabel = new Label();
     private final Label minesLeftLabel = new Label();
     private final Label flagsLabel = new Label();
@@ -55,6 +76,8 @@ public class BoardView extends BorderPane {
             else if (ev.getCode() == KeyCode.S) stepSolver();
             else if (ev.getCode() == KeyCode.A) autoSolve();
             else if (ev.getCode() == KeyCode.C) clearFlags();
+            else if (ev.getCode() == KeyCode.F5) saveGame();
+            else if (ev.getCode() == KeyCode.F9) loadGame();
         });
 
         startNewGame(Difficulty.BEGINNER);
@@ -76,13 +99,20 @@ public class BoardView extends BorderPane {
                 "Expert (30x16, 99)"
         );
         difficulty.getSelectionModel().select(0);
+
+        seedField.setPromptText("seed (optional)");
+        seedField.setPrefWidth(120);
+
         difficulty.setOnAction(e -> startNewGame(currentDifficulty()));
         newGameBtn.setOnAction(e -> startNewGame(currentDifficulty()));
         stepBtn.setOnAction(e -> stepSolver());
         autoBtn.setOnAction(e -> autoSolve());
         clearBtn.setOnAction(e -> clearFlags());
+        saveBtn.setOnAction(e -> saveGame());
+        loadBtn.setOnAction(e -> loadGame());
 
-        HBox left = new HBox(8, new Label("Difficulty:"), difficulty, newGameBtn, stepBtn, autoBtn, clearBtn);
+        HBox left = new HBox(8, new Label("Difficulty:"), difficulty, new Label("Seed:"), seedField,
+                newGameBtn, stepBtn, autoBtn, clearBtn, saveBtn, loadBtn);
         left.setAlignment(Pos.CENTER_LEFT);
 
         HBox stats = new HBox(16, statusLabel, minesLeftLabel, flagsLabel, movesLabel, timeLabel);
@@ -94,7 +124,6 @@ public class BoardView extends BorderPane {
         HBox top = new HBox(20, left, spacer, stats);
         top.setAlignment(Pos.CENTER_LEFT);
         top.setPadding(new Insets(0, 0, 10, 0));
-
         setTop(top);
     }
 
@@ -108,10 +137,21 @@ public class BoardView extends BorderPane {
 
     private void startNewGame(Difficulty diff) {
         Preset p = PRESETS.get(diff);
-        board = new Board(p.w, p.h, p.m);
+        String seedTxt = seedField.getText().trim();
+        if (seedTxt.isEmpty()) {
+            board = new Board(p.w, p.h, p.m);
+        } else {
+            try {
+                long seed = Long.parseLong(seedTxt);
+                board = new Board(p.w, p.h, p.m, seed);
+            } catch (NumberFormatException nfe) {
+                statusLabel.setText("⚠️ Bad seed; using random.");
+                board = new Board(p.w, p.h, p.m);
+            }
+        }
         buildGrid(p.w, p.h);
         refreshAll();
-        statusLabel.setText("🙂 New game — LMB: reveal, RMB: flag. Shortcuts: R/S/A/C");
+        statusLabel.setText("🙂 New game — LMB reveal, RMB flag. Shortcuts: R/S/A/C, F5=Save, F9=Load");
         updateStats();
         startTimer(true);
         requestFocus();
@@ -123,45 +163,39 @@ public class BoardView extends BorderPane {
         grid.getRowConstraints().clear();
         tiles = new Button[h][w];
 
-        for (int y = 0; y < h; y++) {
-            for (int x = 0; x < w; x++) {
-                Button btn = new Button();
-                btn.setPrefSize(TILE_SIZE, TILE_SIZE);
-                btn.setMinSize(TILE_SIZE, TILE_SIZE);
-                btn.setMaxSize(TILE_SIZE, TILE_SIZE);
-                btn.setFont(Font.font("Consolas", 16));
-                btn.setFocusTraversable(false);
+        for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) {
+            Button btn = new Button();
+            btn.setPrefSize(TILE_SIZE, TILE_SIZE);
+            btn.setMinSize(TILE_SIZE, TILE_SIZE);
+            btn.setMaxSize(TILE_SIZE, TILE_SIZE);
+            btn.setFont(Font.font("Consolas", 16));
+            btn.setFocusTraversable(false);
 
-                final int fx = x, fy = y;
-                btn.setOnMouseClicked(ev -> {
-                    if (board.isGameOver()) return;
-                    if (ev.getButton() == MouseButton.PRIMARY) {
-                        Board.RevealResult r = board.reveal(fx, fy);
-                        if (r.hitMine) {
-                            refreshAll();
-                            statusLabel.setText("💥 Boom! (R to restart)");
-                            startTimer(false);
-                        } else {
-                            for (Coord c : r.revealed) refreshTile(c.x(), c.y());
-                            if (board.isWon()) {
-                                statusLabel.setText("🏆 You win! (R to play again)");
-                                startTimer(false);
-                                refreshAll();
-                            } else {
-                                statusLabel.setText("🙂");
-                            }
-                        }
-                        updateStats();
-                    } else if (ev.getButton() == MouseButton.SECONDARY) {
-                        board.toggleFlag(fx, fy);
-                        refreshTile(fx, fy);
-                        updateStats();
+            final int fx = x, fy = y;
+            btn.setOnMouseClicked(ev -> {
+                if (board.isGameOver()) return;
+                if (ev.getButton() == MouseButton.PRIMARY) {
+                    Board.RevealResult r = board.reveal(fx, fy);
+                    if (r.hitMine) {
+                        refreshAll();
+                        statusLabel.setText("💥 Boom! (R to restart)");
+                        startTimer(false);
+                    } else {
+                        for (Coord c : r.revealed) refreshTile(c.x(), c.y());
+                        if (board.isWon()) {
+                            statusLabel.setText("🏆 You win! (R to play again)");
+                            startTimer(false); refreshAll();
+                        } else statusLabel.setText("🙂");
                     }
-                });
+                    updateStats();
+                } else if (ev.getButton() == MouseButton.SECONDARY) {
+                    board.toggleFlag(fx, fy);
+                    refreshTile(fx, fy);
+                    updateStats();
+                }
+            });
 
-                tiles[y][x] = btn;
-                grid.add(btn, x, y);
-            }
+            tiles[y][x] = btn; grid.add(btn, x, y);
         }
     }
 
@@ -181,26 +215,18 @@ public class BoardView extends BorderPane {
         String text;
 
         if (cell.isRevealed()) {
-            if (cell.isMine()) {
-                text = "💣";
-                style += " -fx-background-color: #ffebee;";
-            } else {
+            if (cell.isMine()) { text = "💣"; style += " -fx-background-color: #ffebee;"; }
+            else {
                 int n = cell.getAdjacentMines();
-                if (n > 0) {
-                    text = Integer.toString(n);
-                    style += " -fx-text-fill: " + colorFor(n) + "; -fx-background-color: #fafafa;";
-                } else {
-                    text = "";
-                    style += " -fx-background-color: #fafafa;";
-                }
+                if (n > 0) { text = Integer.toString(n); style += " -fx-text-fill: " + colorFor(n) + "; -fx-background-color: #fafafa;"; }
+                else { text = ""; style += " -fx-background-color: #fafafa;"; }
             }
         } else {
             text = cell.isFlagged() ? "🚩" : "";
             style += " -fx-background-color: #e0e0e0;";
         }
 
-        b.setText(text);
-        b.setStyle(style);
+        b.setText(text); b.setStyle(style);
     }
 
     private String colorFor(int n) {
@@ -239,8 +265,7 @@ public class BoardView extends BorderPane {
         int actions = solver.step(board);
         if (actions == 0) statusLabel.setText("🤔 Solver stuck—need a guess or more info.");
         else statusLabel.setText("🧠 Solver made " + actions + " action(s).");
-        refreshAll();
-        updateStats();
+        refreshAll(); updateStats();
         if (board.isGameOver()) startTimer(false);
         requestFocus();
     }
@@ -251,8 +276,7 @@ public class BoardView extends BorderPane {
         if (board.isWon()) statusLabel.setText("🏆 Solver cleared the board!");
         else if (actions == 0) statusLabel.setText("🤔 Solver stuck—no deterministic moves.");
         else statusLabel.setText("🧠 Solver made " + actions + " action(s). Done.");
-        refreshAll();
-        updateStats();
+        refreshAll(); updateStats();
         if (board.isGameOver()) startTimer(false);
         requestFocus();
     }
@@ -260,8 +284,39 @@ public class BoardView extends BorderPane {
     private void clearFlags() {
         int cleared = board.clearAllFlags();
         statusLabel.setText("🧹 Cleared " + cleared + " flag(s).");
-        refreshAll();
-        updateStats();
+        refreshAll(); updateStats(); requestFocus();
+    }
+
+    private void saveGame() {
+        FileChooser fc = new FileChooser();
+        fc.setTitle("Save Minesweeper Game");
+        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Minesweeper Save (*.msw)", "*.msw"));
+        File f = fc.showSaveDialog(getScene().getWindow());
+        if (f == null) return;
+        try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(f)))) {
+            board.save(out);
+            statusLabel.setText("💾 Saved to " + f.getName());
+        } catch (IOException ex) {
+            statusLabel.setText("❌ Save failed: " + ex.getMessage());
+        }
+        requestFocus();
+    }
+
+    private void loadGame() {
+        FileChooser fc = new FileChooser();
+        fc.setTitle("Load Minesweeper Game");
+        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Minesweeper Save (*.msw)", "*.msw"));
+        File f = fc.showOpenDialog(getScene().getWindow());
+        if (f == null) return;
+        try (DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(f)))) {
+            this.board = Board.load(in);
+            buildGrid(board.getWidth(), board.getHeight());
+            refreshAll(); updateStats();
+            statusLabel.setText("📂 Loaded " + f.getName());
+            startTimer(!board.isGameOver());
+        } catch (IOException ex) {
+            statusLabel.setText("❌ Load failed: " + ex.getMessage());
+        }
         requestFocus();
     }
 }
