@@ -27,6 +27,7 @@ java {
 
 application {
     mainClass = 'dev.bossiq.minesweeper.App'
+    mainModule = 'dev.bossiq.minesweeper'
 }
 
 javafx {
