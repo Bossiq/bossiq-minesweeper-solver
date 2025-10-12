@@ -66,3 +66,28 @@ Made by **Bossiq**.
 # optional: installer (if JDK includes jpackage)
 ./gradlew jpackage
 
+```
+## Downloads
+
+- Windows (portable): Download latest
+
+    Unzip → run bin/minesweeper.bat.
+    (Windows SmartScreen may warn about unsigned binaries: More info → Run anyway.)
+
+- macOS / Linux: no prebuilt archive yet. Run locally with ./gradlew run, or create a platform-specific image with ./gradlew jlink on that OS.
+## Tech Stack
+- Java 17, JavaFX 17
+- Gradle, JUnit 5
+- org.beryx.jlink (portable Windows build)
+- GitHub Actions CI (Windows + Ubuntu)
+
+## Architecture (short)
+- **model** – `Board`, `Cell`, `Coord`, `GameStats` (pure logic; save/load; seedable RNG; first-click safety)
+- **ui** – `BoardView` (JavaFX grid, controls, screenshots, auto-resize)
+- **solver** – deterministic safe-move heuristics (no guessing)
+- **App** – JavaFX bootstrap (Stage/Scene)
+
+## Credits
+- **Author:** Oboroceanu Marian ([@Bossiq](https://github.com/Bossiq)) — Maastricht, NL  
+- **License:** MIT  
+- **Acknowledgments:** Built for my GitHub portfolio, with implementation guidance from ChatGPT.
