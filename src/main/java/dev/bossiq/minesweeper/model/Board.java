@@ -19,7 +19,6 @@ public final class Board {
     private final int mineCount;
     private final Cell[][] grid;
 
-
     private boolean gameOver = false;
     private boolean won = false;
     private int revealedSafeCells = 0;
@@ -30,19 +29,15 @@ public final class Board {
 
     private final Random rng;
 
-
     private final boolean firstClickSafe;
     private boolean minesPlaced;
-
 
     public Board(int width, int height, int mineCount) {
         this(width, height, mineCount, new Random(), true);
     }
-
     public Board(int width, int height, int mineCount, Random rng) {
         this(width, height, mineCount, rng, true);
     }
-
     public Board(int width, int height, int mineCount, Random rng, boolean firstClickSafe) {
         validateSizes(width, height, mineCount);
         this.width = width;
@@ -52,9 +47,7 @@ public final class Board {
         this.firstClickSafe = firstClickSafe;
 
         this.grid = new Cell[height][width];
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) grid[y][x] = new Cell();
-        }
+        for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) grid[y][x] = new Cell();
 
         if (!firstClickSafe) {
             placeMines(Collections.emptySet());
@@ -88,17 +81,12 @@ public final class Board {
     private void placeMines(Set<Integer> excludeIndices) {
         int cells = width * height;
         List<Integer> indices = new ArrayList<>(cells);
-        for (int i = 0; i < cells; i++) {
-            if (!excludeIndices.contains(i)) indices.add(i);
-        }
-        if (indices.size() < mineCount) {
-            throw new IllegalStateException("Not enough cells to place mines after exclusions");
-        }
+        for (int i = 0; i < cells; i++) if (!excludeIndices.contains(i)) indices.add(i);
+        if (indices.size() < mineCount) throw new IllegalStateException("Not enough cells after exclusions");
         Collections.shuffle(indices, rng);
         for (int i = 0; i < mineCount; i++) {
             int idx = indices.get(i);
-            int x = idx % width;
-            int y = idx / width;
+            int x = idx % width, y = idx / width;
             grid[y][x].setMine(true);
         }
     }
@@ -106,10 +94,7 @@ public final class Board {
     private void computeAdjacencyCounts() {
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                if (grid[y][x].isMine()) {
-                    grid[y][x].setAdjacentMines(0);
-                    continue;
-                }
+                if (grid[y][x].isMine()) { grid[y][x].setAdjacentMines(0); continue; }
                 int count = 0;
                 for (int dy = -1; dy <= 1; dy++) {
                     for (int dx = -1; dx <= 1; dx++) {
@@ -134,15 +119,10 @@ public final class Board {
     public RevealResult reveal(int x, int y) {
         boundsCheck(x, y);
         if (gameOver) return new RevealResult(false, Collections.emptyList());
-
-        if (!minesPlaced && firstClickSafe) {
-            ensureMinesPlacedExcluding(x, y);
-        }
+        if (!minesPlaced && firstClickSafe) ensureMinesPlacedExcluding(x, y);
 
         Cell cell = grid[y][x];
-        if (cell.isRevealed() || cell.isFlagged()) {
-            return new RevealResult(false, Collections.emptyList());
-        }
+        if (cell.isRevealed() || cell.isFlagged()) return new RevealResult(false, Collections.emptyList());
 
         moves++;
         ensureStarted();
@@ -174,25 +154,36 @@ public final class Board {
 
         boolean wasFlagged = c.isFlagged();
         c.toggleFlag();
-        if (wasFlagged) flagsUsed--;
-        else flagsUsed++;
+        if (wasFlagged) flagsUsed--; else flagsUsed++;
         return c.isFlagged();
+    }
+
+    /** Clears ALL flags without counting as moves; returns how many flags were removed. */
+    public int clearAllFlags() {
+        int cleared = 0;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                Cell c = grid[y][x];
+                if (c.isFlagged()) {
+                    c.toggleFlag();
+                    cleared++;
+                }
+            }
+        }
+        flagsUsed = 0;
+        return cleared;
     }
 
     private void floodReveal(int sx, int sy, List<Coord> changed) {
         Deque<Coord> dq = new ArrayDeque<>();
         dq.add(new Coord(sx, sy));
-
         while (!dq.isEmpty()) {
             Coord cur = dq.removeFirst();
             Cell cell = grid[cur.y()][cur.x()];
-
             if (cell.isRevealed() || cell.isFlagged()) continue;
             cell.reveal();
             changed.add(cur);
-
             if (!cell.isMine()) revealedSafeCells++;
-
             if (cell.getAdjacentMines() == 0) {
                 for (int dy = -1; dy <= 1; dy++) {
                     for (int dx = -1; dx <= 1; dx++) {
@@ -215,14 +206,9 @@ public final class Board {
     }
 
     private void revealAllMines() {
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                Cell c = grid[y][x];
-                if (c.isMine() && !c.isRevealed()) {
-                    c.reveal();
-                }
-            }
-        }
+        for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+                if (grid[y][x].isMine() && !grid[y][x].isRevealed()) grid[y][x].reveal();
     }
 
     private void checkWin() {
@@ -239,21 +225,13 @@ public final class Board {
     }
 
     private boolean inBounds(int x, int y) { return x >= 0 && y >= 0 && x < width && y < height; }
-    private void boundsCheck(int x, int y) {
-        if (!inBounds(x, y)) throw new IndexOutOfBoundsException("Out of bounds: " + x + "," + y);
-    }
+    private void boundsCheck(int x, int y) { if (!inBounds(x, y)) throw new IndexOutOfBoundsException("Out of bounds: " + x + "," + y); }
 
     public GameStats snapshotStats() {
         long end = (endNanos == 0L ? System.nanoTime() : endNanos);
         double seconds = (startNanos == 0L) ? 0.0 : (end - startNanos) / 1_000_000_000.0;
         int totalSafe = width * height - mineCount;
-
-        return new GameStats(
-                width, height, mineCount,
-                totalSafe, revealedSafeCells,
-                flagsUsed, moves,
-                isGameOver(), isWon(),
-                seconds
-        );
+        return new GameStats(width, height, mineCount, totalSafe, revealedSafeCells,
+                flagsUsed, moves, isGameOver(), isWon(), seconds);
     }
 }

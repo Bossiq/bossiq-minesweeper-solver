@@ -31,6 +31,7 @@ public class BoardView extends BorderPane {
     private final Button newGameBtn = new Button("New Game");
     private final Button stepBtn = new Button("Step Solver (S)");
     private final Button autoBtn = new Button("Auto Solve (A)");
+    private final Button clearBtn = new Button("Clear Flags (C)");
     private final Label statusLabel = new Label();
     private final Label minesLeftLabel = new Label();
     private final Label flagsLabel = new Label();
@@ -50,13 +51,10 @@ public class BoardView extends BorderPane {
 
         setFocusTraversable(true);
         setOnKeyPressed(ev -> {
-            if (ev.getCode() == KeyCode.R) {
-                startNewGame(currentDifficulty());
-            } else if (ev.getCode() == KeyCode.S) {
-                stepSolver();
-            } else if (ev.getCode() == KeyCode.A) {
-                autoSolve();
-            }
+            if (ev.getCode() == KeyCode.R) startNewGame(currentDifficulty());
+            else if (ev.getCode() == KeyCode.S) stepSolver();
+            else if (ev.getCode() == KeyCode.A) autoSolve();
+            else if (ev.getCode() == KeyCode.C) clearFlags();
         });
 
         startNewGame(Difficulty.BEGINNER);
@@ -82,8 +80,9 @@ public class BoardView extends BorderPane {
         newGameBtn.setOnAction(e -> startNewGame(currentDifficulty()));
         stepBtn.setOnAction(e -> stepSolver());
         autoBtn.setOnAction(e -> autoSolve());
+        clearBtn.setOnAction(e -> clearFlags());
 
-        HBox left = new HBox(8, new Label("Difficulty:"), difficulty, newGameBtn, stepBtn, autoBtn);
+        HBox left = new HBox(8, new Label("Difficulty:"), difficulty, newGameBtn, stepBtn, autoBtn, clearBtn);
         left.setAlignment(Pos.CENTER_LEFT);
 
         HBox stats = new HBox(16, statusLabel, minesLeftLabel, flagsLabel, movesLabel, timeLabel);
@@ -112,7 +111,7 @@ public class BoardView extends BorderPane {
         board = new Board(p.w, p.h, p.m);
         buildGrid(p.w, p.h);
         refreshAll();
-        statusLabel.setText("🙂 New game — left click: reveal, right click: flag. Shortcuts: R/S/A");
+        statusLabel.setText("🙂 New game — LMB: reveal, RMB: flag. Shortcuts: R/S/A/C");
         updateStats();
         startTimer(true);
         requestFocus();
@@ -136,12 +135,11 @@ public class BoardView extends BorderPane {
                 final int fx = x, fy = y;
                 btn.setOnMouseClicked(ev -> {
                     if (board.isGameOver()) return;
-
                     if (ev.getButton() == MouseButton.PRIMARY) {
                         Board.RevealResult r = board.reveal(fx, fy);
                         if (r.hitMine) {
                             refreshAll();
-                            statusLabel.setText("💥 Boom! You hit a mine. (R to restart)");
+                            statusLabel.setText("💥 Boom! (R to restart)");
                             startTimer(false);
                         } else {
                             for (Coord c : r.revealed) refreshTile(c.x(), c.y());
@@ -168,11 +166,9 @@ public class BoardView extends BorderPane {
     }
 
     private void refreshAll() {
-        for (int y = 0; y < board.getHeight(); y++) {
-            for (int x = 0; x < board.getWidth(); x++) {
+        for (int y = 0; y < board.getHeight(); y++)
+            for (int x = 0; x < board.getWidth(); x++)
                 refreshTile(x, y);
-            }
-        }
     }
 
     private void refreshTile(int x, int y) {
@@ -215,7 +211,6 @@ public class BoardView extends BorderPane {
             case 4 -> "#283593";
             case 5 -> "#6d4c41";
             case 6 -> "#00838f";
-            case 7 -> "#000000";
             case 8 -> "#424242";
             default -> "#000000";
         };
@@ -242,11 +237,8 @@ public class BoardView extends BorderPane {
     private void stepSolver() {
         if (board.isGameOver()) return;
         int actions = solver.step(board);
-        if (actions == 0) {
-            statusLabel.setText("🤔 Solver stuck—need a guess or more info.");
-        } else {
-            statusLabel.setText("🧠 Solver made " + actions + " action(s).");
-        }
+        if (actions == 0) statusLabel.setText("🤔 Solver stuck—need a guess or more info.");
+        else statusLabel.setText("🧠 Solver made " + actions + " action(s).");
         refreshAll();
         updateStats();
         if (board.isGameOver()) startTimer(false);
@@ -256,16 +248,20 @@ public class BoardView extends BorderPane {
     private void autoSolve() {
         if (board.isGameOver()) return;
         int actions = solver.autoSolve(board);
-        if (board.isWon()) {
-            statusLabel.setText("🏆 Solver cleared the board!");
-        } else if (actions == 0) {
-            statusLabel.setText("🤔 Solver stuck—no deterministic moves.");
-        } else {
-            statusLabel.setText("🧠 Solver made " + actions + " action(s). Done.");
-        }
+        if (board.isWon()) statusLabel.setText("🏆 Solver cleared the board!");
+        else if (actions == 0) statusLabel.setText("🤔 Solver stuck—no deterministic moves.");
+        else statusLabel.setText("🧠 Solver made " + actions + " action(s). Done.");
         refreshAll();
         updateStats();
         if (board.isGameOver()) startTimer(false);
+        requestFocus();
+    }
+
+    private void clearFlags() {
+        int cleared = board.clearAllFlags();
+        statusLabel.setText("🧹 Cleared " + cleared + " flag(s).");
+        refreshAll();
+        updateStats();
         requestFocus();
     }
 }
