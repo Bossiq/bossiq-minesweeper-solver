@@ -22,7 +22,7 @@ public class BoardView extends BorderPane {
     private static final int TILE_SIZE = 32;
 
     private Board board;
-    private GridPane grid = new GridPane();
+    private final GridPane grid = new GridPane();
     private Button[][] tiles;
 
     private final Solver solver = new Solver();
