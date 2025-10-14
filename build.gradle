@@ -46,22 +46,23 @@ test {
 
 jlink {
     addExtraDependencies('javafx')
-    options = ['--strip-debug', '--no-header-files', '--no-man-pages', '--compress', '2']
     launcher {
         name = 'minesweeper'
     }
     jpackage {
-        // For Windows; on macOS/Linux it will create the right installer type automatically
-        installerName = 'MinesweeperSolver'
+        imageName = 'Minesweeper'
+        installerType = 'msi'
+        installerName = 'minesweeper-setup'
         appVersion = project.version
-        vendor = 'BossIQ'
-        // comment out next line if you don’t have a signing setup
-        // winConsole = false
+        vendor = 'Bossiq'
+        winMenu = true
+        winShortcut = true
     }
 }
 
 tasks.withType(Javadoc).configureEach {
     options.encoding = 'UTF-8'
-    // Hide “missing javadoc” noise (keep this if you prefer a clean build)
     options.addBooleanOption('Xdoclint:none', true)
 }
+
+

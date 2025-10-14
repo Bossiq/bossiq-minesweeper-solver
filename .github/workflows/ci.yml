@@ -9,8 +9,8 @@ permissions:
   contents: write
 
 jobs:
-  windows-jlink:
-    name: Windows portable image
+  windows-release:
+    name: Build Windows installer + portable ZIP
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,16 +22,41 @@ jobs:
           java-version: 17
           cache: gradle
 
-      - name: Build jlink image
+      - name: Build portable image (jlink)
         run: ./gradlew.bat jlink --no-daemon --stacktrace
 
       - name: Zip portable image
         run: Compress-Archive -Path build\image\* -DestinationPath minesweeper-image.zip
 
-      - name: Create GitHub Release (and upload zip)
+      - name: Build Windows installer (jpackage)
+        run: ./gradlew.bat jpackage --no-daemon --stacktrace
+
+      - name: Collect artifacts + checksums
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $zip = "minesweeper-image.zip"
+          $msi = (Get-ChildItem build\jpackage\minesweeper-setup*.msi | Select-Object -First 1).FullName
+          if (-not $msi) { throw "MSI not found" }
+
+          Write-Host "MSI: $msi"
+          $zipHash = (Get-FileHash $zip -Algorithm SHA256).Hash
+          $msiHash = (Get-FileHash $msi -Algorithm SHA256).Hash
+
+          @(
+            "SHA256  $zip  $zipHash"
+            "SHA256  $(Split-Path -Leaf $msi)  $msiHash"
+          ) | Out-File -FilePath checksums.txt -Encoding ASCII
+
+          Copy-Item $msi .\minesweeper-setup.msi -Force
+
+      - name: Create GitHub Release (attach assets)
         uses: softprops/action-gh-release@v2
         with:
-          files: minesweeper-image.zip
+          files: |
+            minesweeper-image.zip
+            minesweeper-setup.msi
+            checksums.txt
           draft: false
           prerelease: false
           generate_release_notes: true

@@ -75,18 +75,32 @@ Made by **Bossiq**.
     (Windows SmartScreen may warn about unsigned binaries: More info → Run anyway.)
 
 - macOS / Linux: no prebuilt archive yet. Run locally with ./gradlew run, or create a platform-specific image with ./gradlew jlink on that OS.
+
+---
+
+## What to expect with AV after this
+
+- **SmartScreen**: may still show “unknown publisher” (normal for unsigned). User can click “More info → Run anyway”.
+- **AV “virus” alerts**: should be *less* likely with an MSI and consistent packaging. If a vendor still flags it, grab the exact **detection name** from “Protection history” and submit the MSI to the vendor’s false-positive portal. You do **not** need to disable AV.
+
+Long-term best fix is **code signing** (Authenticode certificate), which most indies skip due to cost. The MSI + checksums approach is standard and acceptable for portfolio projects.
+
+
+If anything in the workflow errors or you want me to tweak the MSI metadata (app name, icon), tell me and I’ll give you the exact lines.
+::contentReference[oaicite:0]{index=0}
+---
 ## Tech Stack
 - Java 17, JavaFX 17
 - Gradle, JUnit 5
 - org.beryx.jlink (portable Windows build)
 - GitHub Actions CI (Windows + Ubuntu)
-
+---
 ## Architecture (short)
 - **model** – `Board`, `Cell`, `Coord`, `GameStats` (pure logic; save/load; seedable RNG; first-click safety)
 - **ui** – `BoardView` (JavaFX grid, controls, screenshots, auto-resize)
 - **solver** – deterministic safe-move heuristics (no guessing)
 - **App** – JavaFX bootstrap (Stage/Scene)
-
+---
 ## Credits
 - **Author:** Oboroceanu Marian ([@Bossiq](https://github.com/Bossiq)) — Maastricht, NL  
 - **License:** MIT  
