@@ -46,6 +46,7 @@ test {
 
 jlink {
     addExtraDependencies('javafx')
+
     launcher {
         name = 'minesweeper'
     }
@@ -55,10 +56,15 @@ jlink {
         installerName = 'minesweeper-setup'
         appVersion = project.version
         vendor = 'Bossiq'
-        winMenu = true
-        winShortcut = true
+
+        installerOptions = [
+                '--win-menu',
+                '--win-shortcut',
+                '--win-per-user-install'
+        ]
     }
 }
+
 
 tasks.withType(Javadoc).configureEach {
     options.encoding = 'UTF-8'
