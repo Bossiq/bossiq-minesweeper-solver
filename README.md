@@ -78,6 +78,8 @@ Made by **Bossiq**.
     (Windows SmartScreen may warn about unsigned binaries: More info → Run anyway.)
 
 - macOS / Linux: no prebuilt archive yet. Run locally with ./gradlew run, or create a platform-specific image with ./gradlew jlink on that OS.
+> Windows Defender may warn because the build is unsigned and newly published.  
+> If you see a warning, update Defender (“Protection updates”) and try again. You can also verify the SHA-256 in `checksums.txt`.
 
 ---
 
