@@ -5,13 +5,14 @@ plugins {
 }
 
 group = 'dev.bossiq'
-version = '1.0.0'
+version = '1.1.0'
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 tasks.withType(Javadoc).configureEach {
     options.encoding = 'UTF-8'
+    options.addBooleanOption('Xdoclint:none', true)
 }
 tasks.withType(ProcessResources).configureEach {
     filteringCharset = 'UTF-8'
@@ -35,7 +36,6 @@ javafx {
     modules = [ 'javafx.controls', 'javafx.graphics', 'javafx.fxml', 'javafx.swing' ]
 }
 
-
 dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.0'
 }
@@ -50,25 +50,31 @@ jlink {
     launcher {
         name = 'minesweeper'
     }
+
+    // Cross-platform jpackage — detects OS at build time
     jpackage {
         imageName = 'Minesweeper'
-        installerType = 'msi'
-        installerName = 'minesweeper-setup'
         appVersion = project.version
         vendor = 'Bossiq'
 
-        installerOptions = [
-                '--win-menu',
-                '--win-shortcut',
-                '--win-per-user-install'
-        ]
+        def os = org.gradle.internal.os.OperatingSystem.current()
+        if (os.isWindows()) {
+            installerType = 'msi'
+            installerName = 'minesweeper-setup'
+            installerOptions = [
+                    '--win-menu',
+                    '--win-shortcut',
+                    '--win-per-user-install'
+            ]
+        } else if (os.isMacOsX()) {
+            installerType = 'dmg'
+            installerName = 'Minesweeper'
+        } else {
+            installerType = 'deb'
+            installerName = 'minesweeper'
+            installerOptions = [
+                    '--linux-shortcut'
+            ]
+        }
     }
 }
-
-
-tasks.withType(Javadoc).configureEach {
-    options.encoding = 'UTF-8'
-    options.addBooleanOption('Xdoclint:none', true)
-}
-
-

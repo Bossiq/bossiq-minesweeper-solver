@@ -1,5 +1,10 @@
 package dev.bossiq.minesweeper.model;
 
+/**
+ * Immutable snapshot of game statistics at a moment in time.
+ *
+ * @author Oboroceanu Marian (Bossiq)
+ */
 public record GameStats(
         int width,
         int height,
@@ -12,17 +17,15 @@ public record GameStats(
         boolean won,
         double elapsedSeconds
 ) {
-    @Override public String toString() {
-        return "Stats{" +
-                "w=" + width +
-                ", h=" + height +
-                ", mines=" + mines +
-                ", safe=" + revealedSafeCells + "/" + totalSafeCells +
-                ", flags=" + flagsUsed +
-                ", moves=" + moves +
-                ", over=" + gameOver +
-                ", won=" + won +
-                ", t=" + String.format("%.2f s", elapsedSeconds) +
-                '}';
+    /** Percentage of safe cells that have been revealed (0–100). */
+    public double completionPercent() {
+        return totalSafeCells == 0 ? 0 : (revealedSafeCells * 100.0 / totalSafeCells);
+    }
+
+    @Override
+    public String toString() {
+        return "Stats{w=%d, h=%d, mines=%d, safe=%d/%d, flags=%d, moves=%d, over=%s, won=%s, t=%.2f s}"
+                .formatted(width, height, mines, revealedSafeCells, totalSafeCells,
+                           flagsUsed, moves, gameOver, won, elapsedSeconds);
     }
 }

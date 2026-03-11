@@ -1,112 +1,152 @@
-[![CI](https://img.shields.io/github/actions/workflow/status/Bossiq/bossiq-minesweeper-solver/ci.yml?branch=main&style=flat)](https://github.com/Bossiq/bossiq-minesweeper-solver/actions)
-![Release](https://img.shields.io/github/v/release/Bossiq/bossiq-minesweeper-solver?style=flat)
-[![Windows Installer](https://img.shields.io/badge/Download-Windows%20Installer-blue?logo=windows&logoColor=white&style=flat)](https://github.com/Bossiq/bossiq-minesweeper-solver/releases/latest/download/minesweeper-setup.msi)
-[![Portable (App Image)](https://img.shields.io/badge/Download-Portable%20(App%20Image)-lightgrey?style=flat)](https://github.com/Bossiq/bossiq-minesweeper-solver/releases/latest/download/minesweeper-appimage.zip)
-![Downloads (total)](https://img.shields.io/github/downloads/Bossiq/bossiq-minesweeper-solver/total?label=downloads%20(total)&style=flat)
-![License](https://img.shields.io/github/license/Bossiq/bossiq-minesweeper-solver?style=flat)
-![Java](https://img.shields.io/badge/Java-17%2B-orange?style=flat)
+# Minesweeper + Solver
 
+A polished Minesweeper game built with **Java** and **JavaFX**, featuring a **three-pass deterministic solver** with probability-based guess hints, a modern dark theme, and cross-platform support.
 
-# Minesweeper + Solver (JavaFX)
-
-A clean Minesweeper with a deterministic solver, first-click safety, save/load, and **seeded boards** for reproducible demos.  
-Made by **Bossiq**.
+**Made by [Oboroceanu Marian (@Bossiq)](https://github.com/Bossiq)** · Maastricht, NL
 
 ---
 
-## Features
+## ✨ Features
 
-- ⛳ **First-click safety** (mines placed after your first reveal; never the clicked cell)
-- 🧠 **Deterministic solver**: Step (safe moves) and Auto (chains safe deductions)
-- 👆 **Chording**: double-click or middle-click a number to auto-reveal neighbors when flags match
-- 🚩 Flags, moves, timer, “mines left”
-- 💾 **Save/Load** (`.msw` binary, versioned)
-- 🎲 **Seeded games**: enter a number to get the same board again
-- 📸 **Screenshot (F8)**: saves the grid as PNG
-- 🧪 **Unit tests** (JUnit 5) & **CI** (Windows + Ubuntu)
-- 📦 **Portable Windows build** via `jlink` (GitHub Release download)
-
----
-
-## Controls
-
-- **Left click**: reveal
-- **Right click**: flag / unflag
-- **Double-click / Middle click** on a number: chord (auto-reveal when flags match)
-- **R**: restart (same difficulty)
-- **S / A**: solver step / auto
-- **C**: clear all flags
-- **F5 / F9**: save / load
-- **F8**: screenshot (PNG)
-
-> Tip: If you placed uncertain flags, hit **C** before **Auto**. The solver assumes flags are correct for chording; wrong flags can cause a loss (like classic Minesweeper).
+| Category | Details |
+|----------|---------|
+| ⛳ **First-click safety** | Mines placed after your first reveal — you never lose on click one |
+| 🧠 **3-pass deterministic solver** | Single-cell constraints → subset/overlap analysis → endgame mine counting |
+| 🎯 **Probability guess hints** | When stuck, highlights the safest cell with a pulsing animation and % probability |
+| 👆 **Chording** | Double-click or middle-click a number to auto-reveal when flags match |
+| 🚩 **Flag & question marks** | Right-click cycles: hidden → 🚩 → ❓ → hidden, with distinct red-tinted flag styling |
+| 🌙 **Dark theme** | Modern glassmorphism-inspired UI with animations and hover effects |
+| 🏆 **Win/loss overlay** | Animated overlay with stats, completion %, and play-again button |
+| 🏅 **Best time tracking** | Persisted between sessions per difficulty |
+| 📊 **Completion percentage** | Live progress tracking in the stats bar |
+| 🔧 **Custom board sizes** | Beyond the 3 presets — define any width × height × mines |
+| 📐 **Adaptive tile sizing** | Tiles scale down automatically on larger boards |
+| 💾 **Save / Load** | Binary `.msw` format with integrity validation |
+| 🎲 **Seeded games** | Enter a seed number to get the same board again |
+| 📸 **Screenshot** | F8 saves the grid as PNG |
+| ℹ️ **About / Help** | Built-in controls reference and info dialog |
+| 🧪 **19 unit tests** | JUnit 5, covering model + solver |
+| ⚡ **Performance optimized** | No GPU-expensive dropshadows on tiles, optimized O(n) solver, thread-safe timer |
+| 📦 **Cross-platform** | Runs on Windows, macOS, and Linux |
 
 ---
 
-## Screenshots
+## 🎮 Controls
 
-> Use **Screenshot (F8)** to create these. Put PNGs in `docs/images/`.
-
-| Beginner | Intermediate | Expert |
-|---|---|---|
-| ![Beginner](docs/images/beginner.png) | ![Intermediate](docs/images/intermediate.png) | ![Expert](docs/images/expert.png) |
+| Action | Input |
+|--------|-------|
+| Reveal | Left click |
+| Flag / Question / Clear | Right click (cycles) |
+| Chord | Double-click or middle-click on a number |
+| Restart | `R` |
+| Solver step | `S` |
+| Auto-solve | `A` |
+| Clear all flags | `C` |
+| Save / Load | `F5` / `F9` |
+| Screenshot | `F8` |
 
 ---
 
-## Build & Run (local)
+## 🚀 Quick Start
+
+### Prerequisites
+- **Java 17+** (JDK) — any distribution
+- No other dependencies needed — Gradle wrapper and JavaFX are bundled
+
+### Run
 
 ```bash
-# run tests
-./gradlew test
+git clone https://github.com/Bossiq/bossiq-minesweeper-solver.git
+cd bossiq-minesweeper-solver
 
-# run app
+# macOS / Linux
+chmod +x gradlew
 ./gradlew run
 
-# create portable runtime image (jlink)
-./gradlew jlink
-# Windows output: build/image/bin/minesweeper.bat
+# Windows
+gradlew.bat run
+```
 
-# optional: installer (if JDK includes jpackage)
+> **Note:** Gradle may show the build stuck at ~85% — this is normal. The app window is already open. Close it to finish the build.
+
+### Test
+
+```bash
+./gradlew test
+```
+
+### Build Portable Image
+
+```bash
+./gradlew jlink
+# → build/image/bin/minesweeper
+```
+
+### Create Installer
+
+```bash
 ./gradlew jpackage
+# Windows → .msi  |  macOS → .dmg  |  Linux → .deb
+```
+
+---
+
+## 🏗️ Architecture
 
 ```
-## Downloads
+src/main/java/dev/bossiq/minesweeper/
+├── App.java              ← JavaFX bootstrap
+├── model/
+│   ├── Board.java        ← Core game logic, flood-fill, save/load
+│   ├── Cell.java         ← Cell state machine
+│   ├── CellState.java    ← HIDDEN / REVEALED / FLAGGED
+│   ├── Coord.java        ← (x, y) record
+│   └── GameStats.java    ← Statistics snapshot with completion %
+├── solver/
+│   └── Solver.java       ← 3-pass solver + probability guess hints
+└── ui/
+    └── BoardView.java    ← Dark-themed UI with all controls
 
-- Windows (portable): Download latest
+src/main/resources/
+└── style.css             ← Dark theme stylesheet
 
-    Unzip → run bin/minesweeper.bat.
-    (Windows SmartScreen may warn about unsigned binaries: More info → Run anyway.)
+src/test/java/
+├── BoardTest.java        ← 10 tests (model + save/load)
+└── SolverTest.java       ← 9 tests (solver passes + probability)
+```
 
-- macOS / Linux: no prebuilt archive yet. Run locally with ./gradlew run, or create a platform-specific image with ./gradlew jlink on that OS.
-> Windows Defender may warn because the build is unsigned and newly published.  
-> If you see a warning, update Defender (“Protection updates”) and try again. You can also verify the SHA-256 in `checksums.txt`.
+### Solver Algorithm
+
+1. **Pass 1 — Single-cell constraint**: For each revealed number, if all mines around it are flagged → reveal the rest. If remaining hidden cells equal remaining mines → flag all.
+2. **Pass 2 — Subset/overlap analysis**: Compares constraint pairs between neighbouring numbered cells using a cell-indexed lookup (avoids O(n²)). If one set of unknowns is a strict subset of another, infers safe cells or mines from the difference.
+3. **Pass 3 — Endgame mine counting**: Uses global mine count — if remaining mines = total hidden cells → flag all; if remaining mines = 0 → reveal all.
+4. **Guess hint**: When stuck, estimates per-cell mine probability using local constraints and highlights the safest cell with a pulsing green animation.
+
+### Performance
+
+- **No GPU-expensive effects** on tile rendering — dropshadows removed from all tile classes
+- **Thread-safe solver** — timer paused during solving, grid disabled to prevent concurrent board access
+- **Optimized constraint comparison** — Pass 2 uses cell-to-constraint indexing instead of all-pairs O(n²)
+- **Solver state re-use** — `autoSolve()` reuses the best-guess from the last `step()` call
 
 ---
 
-## What to expect with AV after this
+## 🛠️ Tech Stack
 
-- **SmartScreen**: may still show “unknown publisher” (normal for unsigned). User can click “More info → Run anyway”.
-- **AV “virus” alerts**: should be *less* likely with an MSI and consistent packaging. If a vendor still flags it, grab the exact **detection name** from “Protection history” and submit the MSI to the vendor’s false-positive portal. You do **not** need to disable AV.
+| Technology | Version |
+|------------|---------|
+| Java | 17+ |
+| JavaFX | 17.0.12 |
+| Gradle | 8.x (via wrapper) |
+| JUnit | 5.11 |
+| jlink/jpackage | Cross-platform installers |
 
-Long-term best fix is **code signing** (Authenticode certificate), which most indies skip due to cost. The MSI + checksums approach is standard and acceptable for portfolio projects.
-
-
-If anything in the workflow errors or you want me to tweak the MSI metadata (app name, icon), tell me and I’ll give you the exact lines.
-::contentReference[oaicite:0]{index=0}
 ---
-## Tech Stack
-- Java 17, JavaFX 17
-- Gradle, JUnit 5
-- org.beryx.jlink (portable Windows build)
-- GitHub Actions CI (Windows + Ubuntu)
----
-## Architecture (short)
-- **model** – `Board`, `Cell`, `Coord`, `GameStats` (pure logic; save/load; seedable RNG; first-click safety)
-- **ui** – `BoardView` (JavaFX grid, controls, screenshots, auto-resize)
-- **solver** – deterministic safe-move heuristics (no guessing)
-- **App** – JavaFX bootstrap (Stage/Scene)
----
-## Credits
-- **Author:** Oboroceanu Marian ([@Bossiq](https://github.com/Bossiq)) — Maastricht, NL  
-- **License:** MIT  
-- **Acknowledgments:** Built for my GitHub portfolio, with implementation guidance from ChatGPT.
+
+## 📄 License
+
+MIT
+
+## 👤 Author
+
+**Oboroceanu Marian** · [@Bossiq](https://github.com/Bossiq) · Maastricht, Netherlands

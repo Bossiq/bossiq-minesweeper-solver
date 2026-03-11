@@ -1,0 +1,275 @@
+/* ═══════════════════════════════════════════════════════════════
+   Minesweeper + Solver  —  Dark Theme
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Root / Scene ─────────────────────────────────────────── */
+.root {
+    -fx-base: #1a1a2e;
+    -fx-background-color: #0f0f1a;
+    -fx-font-family: "Segoe UI", "SF Pro Text", "Helvetica Neue", sans-serif;
+    -fx-font-size: 13px;
+    -fx-text-fill: #e0e0e0;
+}
+
+/* ── Top toolbar ──────────────────────────────────────────── */
+.toolbar-box {
+    -fx-background-color: linear-gradient(to bottom, #1e1e3a, #16213e);
+    -fx-background-radius: 10;
+    -fx-padding: 8 14;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.45), 10, 0, 0, 3);
+}
+
+/* ── Stats bar ────────────────────────────────────────────── */
+.stats-bar {
+    -fx-background-color: rgba(30, 30, 58, 0.6);
+    -fx-background-radius: 8;
+    -fx-padding: 5 12;
+}
+
+.stats-bar .label {
+    -fx-text-fill: #b0b8d0;
+    -fx-font-size: 12px;
+}
+
+/* ── Buttons (general) ────────────────────────────────────── */
+.button {
+    -fx-background-color: linear-gradient(to bottom, #2a2a4a, #22223a);
+    -fx-text-fill: #d0d4e4;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+    -fx-border-color: #3a3a5e;
+    -fx-border-width: 1;
+    -fx-padding: 4 10;
+    -fx-cursor: hand;
+}
+.button:hover {
+    -fx-background-color: linear-gradient(to bottom, #3a3a6a, #2e2e52);
+    -fx-border-color: #6060a0;
+}
+.button:pressed {
+    -fx-background-color: #1a1a30;
+}
+
+/* ── Face button ──────────────────────────────────────────── */
+.face-btn {
+    -fx-font-size: 22px;
+    -fx-background-color: linear-gradient(to bottom, #2e2e5a, #24244a);
+    -fx-background-radius: 50;
+    -fx-border-radius: 50;
+    -fx-border-color: #5050a0;
+    -fx-border-width: 1.5;
+    -fx-min-width: 42;
+    -fx-min-height: 42;
+    -fx-max-width: 42;
+    -fx-max-height: 42;
+    -fx-padding: 0;
+}
+.face-btn:hover {
+    -fx-background-color: linear-gradient(to bottom, #3e3e7a, #30305a);
+    -fx-border-color: #7070c0;
+    -fx-effect: dropshadow(gaussian, rgba(100,100,200,0.4), 8, 0, 0, 0);
+}
+
+/* ── Solver / action buttons ──────────────────────────────── */
+.solver-btn {
+    -fx-background-color: linear-gradient(to bottom, #1b4332, #143528);
+    -fx-text-fill: #80e0a0;
+    -fx-border-color: #2d6a4f;
+}
+.solver-btn:hover {
+    -fx-background-color: linear-gradient(to bottom, #2d6a4f, #1b4332);
+    -fx-border-color: #52b788;
+}
+
+.clear-btn {
+    -fx-background-color: linear-gradient(to bottom, #4a3020, #3a2418);
+    -fx-text-fill: #f0b080;
+    -fx-border-color: #6a4a30;
+}
+.clear-btn:hover {
+    -fx-background-color: linear-gradient(to bottom, #6a4a30, #4a3020);
+    -fx-border-color: #c08050;
+}
+
+/* ── Grid tile — hidden (raised, lighter) ─────────────────── */
+.tile-hidden {
+    -fx-background-color: linear-gradient(to bottom right, #3a3a6e, #2e2e58);
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+    -fx-border-color: #50508a;
+    -fx-border-width: 1;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+    -fx-cursor: hand;
+}
+.tile-hidden:hover {
+    -fx-background-color: linear-gradient(to bottom right, #4a4a8a, #383870);
+    -fx-border-color: #7070b0;
+    -fx-border-width: 1.5;
+}
+/* Keep tiles visible when grid is disabled during solving */
+.tile-hidden:disabled {
+    -fx-opacity: 1.0;
+}
+
+/* ── Grid tile — flagged ──────────────────────────── */
+.tile-flagged {
+    -fx-background-color: linear-gradient(to bottom right, #4a2a3e, #3a2030);
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+    -fx-border-color: #804060;
+    -fx-border-width: 1.5;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+    -fx-cursor: hand;
+}
+.tile-flagged:hover {
+    -fx-background-color: linear-gradient(to bottom right, #5a3a4e, #4a3040);
+    -fx-border-color: #a05070;
+}
+.tile-flagged:disabled {
+    -fx-opacity: 1.0;
+}
+
+/* ── Grid tile — revealed (sunken, darker) ────────────────── */
+.tile-revealed {
+    -fx-background-color: #141428;
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+    -fx-border-color: #1e1e38;
+    -fx-border-width: 1;
+    -fx-font-weight: bold;
+    -fx-font-size: 16px;
+    -fx-alignment: center;
+}
+.tile-revealed:disabled {
+    -fx-opacity: 1.0;
+}
+
+/* ── Grid tile — mine (boom) ──────────────────────────────── */
+.tile-mine {
+    -fx-background-color: radial-gradient(center 50% 50%, radius 70%, #6a1010, #3a0808);
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+    -fx-border-color: #aa2020;
+    -fx-border-width: 1;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+}
+.tile-mine:disabled {
+    -fx-opacity: 1.0;
+}
+
+/* ── Number colors (set via inline -fx-text-fill) ─────────── */
+
+/* ── Grid tile — solver guess hint ────────────────────────── */
+.tile-hint {
+    -fx-background-color: linear-gradient(to bottom right, #2a4a3a, #1e3a2e);
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+    -fx-border-color: #40c070;
+    -fx-border-width: 2.5;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+    -fx-cursor: hand;
+}
+.tile-hint:disabled {
+    -fx-opacity: 1.0;
+}
+
+/* ── ComboBox ─────────────────────────────────────────────── */
+.combo-box {
+    -fx-background-color: #22223a;
+    -fx-border-color: #3a3a5e;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+.combo-box .list-cell {
+    -fx-background-color: #22223a;
+    -fx-text-fill: #d0d4e4;
+}
+.combo-box-popup .list-view {
+    -fx-background-color: #1e1e38;
+}
+.combo-box-popup .list-cell {
+    -fx-background-color: #1e1e38;
+    -fx-text-fill: #d0d4e4;
+}
+.combo-box-popup .list-cell:hover {
+    -fx-background-color: #2e2e52;
+}
+
+/* ── TextField ────────────────────────────────────────────── */
+.text-field {
+    -fx-background-color: #1e1e38;
+    -fx-text-fill: #d0d4e4;
+    -fx-border-color: #3a3a5e;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-prompt-text-fill: #6a6a8a;
+}
+.text-field:focused {
+    -fx-border-color: #6060a0;
+    -fx-effect: dropshadow(gaussian, rgba(80,80,180,0.35), 6, 0, 0, 0);
+}
+
+/* ── Labels ───────────────────────────────────────────────── */
+.label {
+    -fx-text-fill: #c0c4d4;
+}
+
+.status-label {
+    -fx-text-fill: #a0a8c0;
+    -fx-font-size: 12px;
+}
+
+/* ── Grid container ───────────────────────────────────────── */
+.grid-pane {
+    -fx-background-color: #12122a;
+    -fx-padding: 6;
+    -fx-background-radius: 8;
+}
+
+/* ── Win/loss overlay ─────────────────────────────────────── */
+.overlay-bg {
+    -fx-background-color: rgba(10, 10, 26, 0.85);
+    -fx-background-radius: 8;
+}
+
+.overlay-text {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffffff;
+    -fx-effect: dropshadow(gaussian, rgba(100,100,255,0.5), 12, 0, 0, 0);
+}
+
+.overlay-btn {
+    -fx-background-color: linear-gradient(to bottom, #3a3a7a, #2a2a5a);
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 14px;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-border-color: #5a5aa0;
+    -fx-border-width: 1.5;
+    -fx-padding: 8 24;
+    -fx-cursor: hand;
+}
+.overlay-btn:hover {
+    -fx-background-color: linear-gradient(to bottom, #5a5aa0, #3a3a7a);
+    -fx-effect: dropshadow(gaussian, rgba(100,100,255,0.5), 10, 0, 0, 0);
+}
+
+/* ── Scrollbar styling ────────────────────────────────────── */
+.scroll-pane {
+    -fx-background-color: transparent;
+}
+.scroll-bar {
+    -fx-background-color: #1a1a2e;
+}
+.scroll-bar .thumb {
+    -fx-background-color: #3a3a60;
+    -fx-background-radius: 4;
+}
+.scroll-bar .thumb:hover {
+    -fx-background-color: #5050a0;
+}
